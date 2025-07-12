@@ -451,8 +451,8 @@ bool AFLCoverage::runOnModule(Module &M) {
     bool instrument_fault_localization = true;
 
     if (
-      (F.getName().str().find("error") != string::npos) ||
-      (F.getName().str().find("print") != string::npos)
+      (F.getName().str().find("error") != std::string::npos) ||
+      (F.getName().str().find("print") != std::string::npos)
     )
       instrument_fault_localization = false;
 
