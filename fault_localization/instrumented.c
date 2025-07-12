@@ -2,6 +2,10 @@
 #include <execinfo.h>
 #include "control.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void FL_stat();
 
 void FL_stat()
@@ -30,3 +34,7 @@ void FL_stat()
         }
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
