@@ -64,7 +64,9 @@ typedef long double max_align_t;
 #include "afl-llvm-common.h"
 #include "llvm-alternative-coverage.h"
 
+#include <iostream>
 using namespace llvm;
+using namespace std;
 
 namespace {
 
@@ -146,8 +148,8 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   if ((isatty(2) && !getenv("AFL_QUIET")) || getenv("AFL_DEBUG") != NULL) {
 
-    SAYF(cCYA "afl-llvm-pass" VERSION cRST
-              " by <lszekeres@google.com> and <adrian.herrera@anu.edu.au>\n");
+    SAYF(cCYA "afl-invivo-llvm-pass" VERSION cRST
+              " by <lszekeres@google.com> and <adrian.herrera@anu.edu.au> and ywc\n");
 
   } else
 
@@ -194,13 +196,13 @@ bool AFLCoverage::runOnModule(Module &M) {
       /*      if (!getenv("AFL_LLVM_NOT_ZERO")) { */
 
       skip_nozero = "1";
-      SAYF(cCYA "afl-llvm-pass" VERSION cRST " using thread safe counters\n");
+      SAYF(cCYA "afl-invivo-llvm-pass" VERSION cRST " using thread safe counters\n");
 
       /*
 
             } else {
 
-              SAYF(cCYA "afl-llvm-pass" VERSION cRST
+              SAYF(cCYA "afl-invivo-llvm-pass" VERSION cRST
                         " using thread safe not-zero-counters\n");
 
             }
@@ -209,7 +211,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     } else {
 
-      SAYF(cCYA "afl-llvm-pass" VERSION cRST
+      SAYF(cCYA "afl-invivo-llvm-pass" VERSION cRST
                 " using non-thread safe instrumentation\n");
 
     }
@@ -420,6 +422,12 @@ bool AFLCoverage::runOnModule(Module &M) {
 
 #endif
 
+  auto callee_FL_stat = M.getOrInsertFunction(
+        "FL_stat",
+        Type::getVoidTy(M.getContext())
+        ).getCallee();
+  Function *Fun_FL_stat = cast<Function>(callee_FL_stat);
+
   // other constants we need
   ConstantInt *One = ConstantInt::get(Int8Ty, 1);
 
@@ -442,11 +450,23 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     if (F.size() < function_minimum_size) { continue; }
 
+    bool instrument_fault_localization = true;
+    if (
+      (F.getName().str().find("error") != string::npos) ||
+      (F.getName().str().find("print") != string::npos)
+    )
+      instrument_fault_localization = false;
+
     std::list<Value *> todo;
     for (auto &BB : F) {
 
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
       IRBuilder<>          IRB(&(*IP));
+
+      if (instrument_fault_localization)
+      {
+        IRB.CreateCall(Fun_FL_stat);
+      }
 
       // Context sensitive coverage
       if (instrument_ctx && &BB == &F.getEntryBlock()) {

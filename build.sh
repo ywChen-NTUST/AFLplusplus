@@ -1,1 +1,1 @@
-rm -f fl-rt.o && rm -f afl-llvm-pass.so && INVIVO=1 make -j10
+rm -f invivo-rt.o && rm -f fl-rt.o && rm -f afl-invivo-llvm-pass.so && INVIVO=1 make -j10
