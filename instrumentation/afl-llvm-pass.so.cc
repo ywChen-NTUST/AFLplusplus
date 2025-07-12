@@ -420,6 +420,12 @@ bool AFLCoverage::runOnModule(Module &M) {
 
 #endif
 
+  auto callee_FL_stat = M.getOrInsertFunction(
+        "FL_stat",
+        Type::getVoidTy(M.getContext())
+        ).getCallee();
+  Function *Fun_FL_stat = cast<Function>(callee_FL_stat);
+
   // other constants we need
   ConstantInt *One = ConstantInt::get(Int8Ty, 1);
 
@@ -442,11 +448,24 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     if (F.size() < function_minimum_size) { continue; }
 
+    bool instrument_fault_localization = true;
+
+    if (
+      (F.getName().str().find("error") != string::npos) ||
+      (F.getName().str().find("print") != string::npos)
+    )
+      instrument_fault_localization = false;
+
     std::list<Value *> todo;
     for (auto &BB : F) {
 
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
       IRBuilder<>          IRB(&(*IP));
+
+      if (instrument_fault_localization)
+      {
+        IRB.CreateCall(Fun_FL_stat);
+      }
 
       // Context sensitive coverage
       if (instrument_ctx && &BB == &F.getEntryBlock()) {

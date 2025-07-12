@@ -51,6 +51,9 @@ static u32  cc_par_cnt = 1;            /* Param count, including argv0      */
 static u8   clang_mode;                /* Invoked as afl-clang*?            */
 static u8   llvm_fullpath[PATH_MAX];
 static u8   instrument_mode, instrument_opt_mode, ngram_size, ctx_k, lto_mode;
+
+static u8 invivo_mode;
+
 static u8   compiler_mode, plusplus_mode, have_instr_env = 0;
 static u8   have_gcc, have_llvm, have_gcc_plugin, have_lto, have_instr_list = 0;
 static u8 * lto_flag = AFL_CLANG_FLTO, *argvnull;
@@ -1054,8 +1057,12 @@ static void edit_params(u32 argc, char **argv, char **envp) {
   if (compiler_mode != GCC && compiler_mode != CLANG) {
 
     switch (bit_mode) {
-
       case 0:
+        if(invivo_mode)
+        {  
+          cc_params[cc_par_cnt++] =
+              alloc_printf("%s/fl-rt.o", obj_path);
+        }
         if (!shared_linking && !partial_linking)
           cc_params[cc_par_cnt++] =
               alloc_printf("%s/afl-compiler-rt.o", obj_path);
@@ -1065,6 +1072,11 @@ static void edit_params(u32 argc, char **argv, char **envp) {
         break;
 
       case 32:
+        if(invivo_mode)
+        {  
+          cc_params[cc_par_cnt++] =
+              alloc_printf("%s/fl-rt.o", obj_path);
+        }
         if (!shared_linking && !partial_linking) {
 
           cc_params[cc_par_cnt++] =
@@ -1086,6 +1098,11 @@ static void edit_params(u32 argc, char **argv, char **envp) {
         break;
 
       case 64:
+        if(invivo_mode)
+        {  
+          cc_params[cc_par_cnt++] =
+              alloc_printf("%s/fl-rt.o", obj_path);
+        }
         if (!shared_linking && !partial_linking) {
 
           cc_params[cc_par_cnt++] =
@@ -1144,6 +1161,9 @@ int main(int argc, char **argv, char **envp) {
 
   int   i, passthrough = 0;
   char *callname = argv[0], *ptr = NULL;
+
+  if(getenv("INVIVO"))
+    invivo_mode=1;
 
   if (getenv("AFL_DEBUG")) {
 
